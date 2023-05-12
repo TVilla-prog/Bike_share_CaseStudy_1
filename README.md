@@ -19,4 +19,8 @@ Cyclistic historical bike trip data is available for 12 months of the year 2022 
 Step 3 Cleaning of Data
 Rides under a minute were removed before analyzation.
 Step 4 Analyze
+1.  Casual riders seem to use the bikes on the weekends for longer durations.  Perhaps charge casual riders an hourly rate which would increase revenue.
+2.  Casual riders would be persuaded to purchase a membership for a package of 1 or 3 day weekend verses a annual membership.
+3.  Digital media can be utilized at stations along bus and train terminals to encourage casual riders to try Cyclistic bikes which may influence them to become members.
+4.  Digital media can also be utilized to offer incentives to casual riders to become members perhaps by offering a sign on bonus discount. 
 
