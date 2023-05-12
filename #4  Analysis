@@ -1,0 +1,128 @@
+--Data Analysis
+
+--# of trips per month
+select
+case extract(month from started_at) 
+when 1 then 'Jan'
+when 2 then 'Feb'
+when 3 then 'Mar'
+when 4 then 'Apr'
+when 5 then 'May'
+when 6 then 'Jun'
+when 7 then 'Jul'
+when 8 then 'Aug'
+when 9 then 'Sep'
+when 10 then 'Oct'
+when 11 then 'Nov'
+when 12 then 'Dec'
+End as month,
+member_casual,
+count(*) as num_trips
+from `case-study-1-384416.2022_bikeshare.2022_annual_bikeshare` 
+group by month,member_casual
+
+
+--Day of week member vs casual rides
+select day_of_week,
+  cast(avg_num_trips_member as int64) avg_num_trips_member,
+  cast(avg_num_trips_casual as int64) avg_num_trips_casual
+from (
+  select member_casual,count(*) trips,
+  format_date ('%a',date(started_at)) day_of_week,
+  extract(dayofweek from date(started_at)) pos
+  from `case-study-1-384416.2022_bikeshare.2022_annual_bikeshare` 
+  group by member_casual,day_of_week,date(started_at),pos  
+)
+pivot (avg(trips) avg_num_trips for member_casual in ('member','casual'))
+order by pos
+
+--AVG ride_length duration per month member and casual
+
+WITH duration AS (
+  SELECT 
+    member_casual,
+    EXTRACT(MONTH FROM started_at) AS month,
+    datetime_diff(ended_at, started_at, minute) AS trip_duration
+  FROM `case-study-1-384416.2022_bikeshare.2022_annual_bikeshare`
+)
+SELECT 
+  member_casual,
+  CASE month
+    WHEN 1 THEN 'Jan'
+    WHEN 2 THEN 'Feb'
+    WHEN 3 THEN 'Mar'
+    WHEN 4 THEN 'Apr'
+    WHEN 5 THEN 'May'
+    WHEN 6 THEN 'Jun'
+    WHEN 7 THEN 'Jul'
+    WHEN 8 THEN 'Aug'
+    WHEN 9 THEN 'Sep'
+    WHEN 10 THEN 'Oct'
+    WHEN 11 THEN 'Nov'
+    WHEN 12 THEN 'Dec'
+  END AS month,
+  AVG(trip_duration) AS avg_trip_duration_in_min
+FROM duration
+WHERE member_casual IN ('member', 'casual')
+GROUP BY member_casual, month
+ORDER BY month;
+
+--Average duration per day of the week
+WITH duration AS (
+  SELECT 
+    member_casual,
+    EXTRACT(DAYOFWEEK FROM started_at) AS day_of_week,
+    datetime_diff(ended_at, started_at, minute) AS trip_duration
+  FROM `case-study-1-384416.2022_bikeshare.2022_annual_bikeshare`
+)
+SELECT 
+  member_casual,
+  CASE day_of_week
+    WHEN 1 THEN 'Sun'
+    WHEN 2 THEN 'Mon'
+    WHEN 3 THEN 'Tue'
+    WHEN 4 THEN 'Wed'
+    WHEN 5 THEN 'Thu'
+    WHEN 6 THEN 'Fri'
+    WHEN 7 THEN 'Sat'
+  END AS day_of_week,
+  AVG(trip_duration) AS avg_trip_duration_in_min
+FROM duration
+WHERE member_casual IN ('member', 'casual')
+GROUP BY member_casual, day_of_week
+ORDER BY 
+  CASE day_of_week
+    WHEN 'Sun' THEN 1
+    WHEN 'Mon' THEN 2
+    WHEN 'Tue' THEN 3
+    WHEN 'Wed' THEN 4
+    WHEN 'Thu' THEN 5
+    WHEN 'Fri' THEN 6
+    WHEN 'Sat' THEN 7
+  END;
+
+--Most popular bike types member and casual
+SELECT 
+  rideable_type,
+  member_casual,
+  COUNTIF(rideable_type = rideable_type) AS count
+FROM `case-study-1-384416.2022_bikeshare.2022_annual_bikeshare`
+GROUP BY rideable_type, member_casual
+
+--Most popular start and end stations--
+SELECT
+  start_station_name,
+  end_station_name,
+  COUNT(*) AS count,
+  member_casual
+FROM
+  `case-study-1-384416.2022_bikeshare.2022_annual_bikeshare`
+WHERE
+  start_station_name IS NOT NULL
+  AND end_station_name IS NOT NULL
+GROUP BY
+  start_station_name,
+  end_station_name,
+  member_casual
+ORDER BY
+  count DESC
