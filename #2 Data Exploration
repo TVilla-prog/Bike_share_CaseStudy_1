@@ -1,0 +1,129 @@
+--Data Exploration
+
+
+
+--checking for number of null values in all columns,comparing member and casual
+
+SELECT 
+count(*) as numrows,
+sum(case when ride_id is null then 1 else 0 end) ride_null,
+sum(case when rideable_type is null then 1 else 0 end) rideable_null,
+sum(case when started_at is null then 1 else 0 end) started_at,
+sum(case when ended_at is null then 1 else 0 end) end_at_null,
+sum(case when start_station_name is null then 1 else 0 end) start_station_name_null,
+sum(case when start_station_id is null then 1 else 0 end) start_station_name_null,
+sum(case when end_station_name is null then 1 else 0 end) end_station_name_null,
+sum(case when end_station_id is null then 1 else 0 end) end_station_id_null,
+sum(case when start_lat is null then 1 else 0 end) start_lat_null,
+sum(case when start_lng is null then 1 else 0 end) start_lng_null,
+sum(case when end_lat is null then 1 else 0 end) end_lat_null,
+sum(case when end_lng is null then 1 else 0 end) end_lng,
+sum(case when member_casual is null then 1 else 0 end) member_casual_null,
+sum(case when ride_length is null then 1 else 0 end) ride_length_null,
+sum(case when day_of_week is null then 1 else 0 end) day_of_week_null
+
+FROM `case-study-1-384416.2022_bikeshare.2022_annual_bikeshare` 
+group by member_casual
+
+--How man rides for 2022 year -- 5,667,440
+
+select
+count(ride_id)
+FROM `case-study-1-384416.2022_bikeshare.2022_annual_bikeshare` 
+
+--2 options Checking for duplicates in ride_id-- amounted to 212 rows for each
+
+select
+ride_id, 
+count(ride_id) as number_of_rows
+FROM`case-study-1-384416.2022_bikeshare.2022_annual_bikeshare`
+group by ride_id
+having count(ride_id)>1
+--
+select
+count (*) as duplicates
+from
+(
+  select ride_id,count(*) as records
+  from`case-study-1-384416.2022_bikeshare.2022_annual_bikeshare`
+  group by 1
+)
+where records > 1;
+
+--rideable_types with # of trips each--
+
+select distinct
+rideabl maximum, e_type, count (rideable_type) as no_of_trips
+FROM `case-study-1-384416.2022_bikeshare.2022_annual_bikeshare` 
+group by rideable_type
+
+--ride_length maximum, average between members and casuals--
+WITH duration AS (
+  SELECT 
+    member_casual,
+    datetime_diff(ended_at, started_at, minute) AS trip_duration
+  FROM `case-study-1-384416.2022_bikeshare.2022_annual_bikeshare` 
+)
+SELECT 
+  member_casual,
+  MAX(trip_duration) AS min_duration_in_min,
+  
+FROM duration
+GROUP BY member_casual
+
+
+
+
+--avg_trip_duration_of_member_vs_casual-- casual 29.144,member 12.71
+WITH duration AS (
+
+  SELECT 
+    member_casual,
+    datetime_diff(ended_at, started_at, minute) AS trip_duration
+  FROM `case-study-1-384416.2022_bikeshare.2022_annual_bikeshare` 
+)
+SELECT 
+  member_casual,
+  MAX(trip_duration) AS avg_trip_duration_in_min
+FROM duration
+GROUP BY member_casual
+
+
+
+--AVG trip duration
+
+with duration as (
+  SELECT datetime_diff(ended_at,started_at,minute) as trip_duration
+  FROM `case-study-1-384416.2022_bikeshare.2022_annual_bikeshare`
+)
+select avg(trip_duration) as avg_trip_duration_in_min
+from duration
+
+
+-- AVG # of trips_pre_cleaning of members vs casual
+select day_of_week,
+  cast(avg_num_trips_member as int64) avg_num_trips_member,
+  cast(avg_num_trips_casual as int64) avg_num_trips_casual
+from (
+  select member_casual,count(*) trips,
+  format_date ('%a',date(started_at)) day_of_week,
+  extract(dayofweek from date(started_at)) pos
+  from `case-study-1-384416.2022_bikeshare.2022_annual_bikeshare` 
+  group by member_casual,day_of_week,date(started_at),pos  
+)
+pivot (avg(trips) avg_num_trips for member_casual in ('member','casual'))
+order by pos
+
+--HOW MANY TRIPS LESS THAN A MINUTE
+WITH duration AS (
+  SELECT 
+    member_casual,
+    datetime_diff(ended_at, started_at, minute) AS trip_duration,
+    CASE WHEN datetime_diff(ended_at, started_at, second) < 60 THEN 1 ELSE 0 END AS less_than_1min
+  FROM `case-study-1-384416.2022_bikeshare.2022_annual_bikeshare` 
+)
+SELECT 
+  member_casual,
+  SUM(less_than_1min) AS num_rides_less_than_1min
+FROM duration
+GROUP BY member_casual
