@@ -1,0 +1,58 @@
+--Check duplicated ride_id # for each row.  No delete function required--
+SELECT *
+FROM (
+  SELECT *,
+    COUNT(*) OVER (PARTITION BY ride_id) AS ride_count
+  FROM `case-study-1-384416.2022_bikeshare.2022_annual_bikeshare`
+) t
+WHERE t.ride_count > 1
+ORDER BY t.ride_id
+
+--Create new table with clean data
+CREATE table `2022_rideshare.cleaned` AS (
+select
+  a.ride_id,rideable_type,started_at,ended_at,ride_length,
+  case extract(dayofweek from started_at)
+  when 1 then 'SUN'
+  when 2 then 'MON'
+  when 3 then 'TUES'
+  when 4 then 'WED'
+  when 5 then 'THURS'
+  when 6 then 'FRI'
+  when 7 then 'SAT'
+  END as day_of_week,
+  CASE EXTRACT (Mounth from started_at)
+  when 1 then 'JAN'
+  when 2 then 'FEB'
+  when 3 then 'MAR'
+  when 4 then 'APR'
+  when 5 then 'MAY'
+  when 6 then 'JUN'
+  when 7 then 'JUL'
+  when 8 then 'AUG'
+  when 9 then 'SEP'
+  when 10 then 'OCT'
+  when 11 then 'NOV'
+  when 12 then 'DEC'
+  END AS month,
+  start_station_name,end_station_name,
+  start_lat,start_lng,end_lat,end_lng,member_casual
+  FROM`case-study-1-384416.2022_bikeshare.2022_annual_bikeshare`
+  JOIN (
+    SELECT ride_id,(
+      EXTRACT (hour from(ended_at - started_at)) * 60 +
+      EXTRACT (minute from (ended_at - started_at)) +
+      EXTRACT (SECOND FROM (ended_at - started_at)) / 60) AS ride_length
+      FROM`case-study-1-384416.2022_bikeshare.2022_annual_bikeshare`
+    ) b
+    ON a.ride_id = b.ride_id
+    WHERE
+    start_station_name IS NOT NULL AND
+    end_station_name IS NOT NULL AND
+    end_lat IS NOT NULL AND
+    end_lng IS NOT NULL AND
+    ride_length > 1 AND ride_length < 1440
+)
+--Deleting rides less than a minute--
+DELETE FROM `case-study-1-384416.2022_bikeshare.2022_annual_bikeshare`
+WHERE datetime_diff(ended_at, started_at, second) < 60
